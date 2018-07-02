@@ -173,6 +173,20 @@ def runOn(infile):
     def getAvailableRides(rides):
         return filter(lambda ride: ride.taken is False, rides)
 
+    def findAvailableRides(car, rides, fleet):
+        availableRides = getAvailableRides(rides)
+        if len(availableRides) == 0:
+            # finished = True
+            return "Finished"
+        bestRide = selectRide(fleet[car.ID], availableRides, currentStep)
+        fleet[car.ID].rideList.append(bestRide.inputIndex)
+        fleet[car.ID].onRide = True
+        fleet[car.ID].destination = bestRide.endLocation
+        fleet[car.ID].location = bestRide.endLocation
+        fleet[car.ID].stepAvailable = currentStep + bestRide.journeyDistance
+        rides[bestRide.inputIndex].taken = True
+        return rides, fleet
+
     def init(rides, fleet):
 
         currentStep = 0
@@ -190,20 +204,6 @@ def runOn(infile):
     def step(currentStep, rides, fleet):
         availableCars = getAvailableCars(fleet, currentStep)
 
-        def findAvailableRides(car, rides, fleet):
-            availableRides = getAvailableRides(rides)
-            if len(availableRides) == 0:
-                # finished = True
-                return "Finished"
-            bestRide = selectRide(fleet[car.ID], availableRides, currentStep)
-            fleet[car.ID].rideList.append(bestRide.inputIndex)
-            fleet[car.ID].onRide = True
-            fleet[car.ID].destination = bestRide.endLocation
-            fleet[car.ID].location = bestRide.endLocation
-            fleet[car.ID].stepAvailable = currentStep + bestRide.journeyDistance
-            rides[bestRide.inputIndex].taken = True
-            return rides, fleet
-
         for car in availableCars:
             try:
                 rides, fleet = findAvailableRides(car, rides, fleet)
@@ -215,11 +215,14 @@ def runOn(infile):
         except Exception:
             pass
 
+    #Initialise
     rides, fleet = init(rides, fleet)
-    for i in range(steps - 1):
-        currentStep = i
-        rides, fleet = step(currentStep, rides, fleet)
 
+    #Iterate
+    for currentStep in range(steps - 1):
+        rides, fleet = step(currentStep, rides, fleet)
+        
+    #Write solution to file
     with open('solution'+infile.upper()+'.txt', 'w') as f:
         for car in fleet:
             f.write(str(len(car.rideList)) + ' ' + ' '.join([str(x) for x in car.rideList]) + '\n')
